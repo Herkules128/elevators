@@ -88,7 +88,17 @@ function elevator_entity:on_punch(puncher, time_from_last_punch, tool_capabiliti
 		self.ejected_pos = eject_to_pos(player)
 	end
 
-	-- GIVE PUNCHER THE ITEM
+	-- give the puncher the item
+	local inv = puncher:get_inventory()
+	if not creative.is_enabled_for(puncher:get_player_name()) or not inv:contains_item("main", "carts:cart") then
+		local leftover = inv:add_item("main", "elevators:elevator")
+		-- If no room in inventory add a replacement elevator to the world
+		if not leftover:is_empty() then
+			minetest.add_item(self.object:get_pos(), leftover)
+		end
+	end
+
+
 	self.remove_elevator = true;
 
 end
@@ -324,6 +334,11 @@ minetest.register_craftitem("elevators:elevator", {
 		else
 			return
 		end
+
+		if not creative.is_enabled_for(placer:get_player_name()) then
+			itemstack:take_item()
+		end
+		return itemstack
 	end
 })
 
