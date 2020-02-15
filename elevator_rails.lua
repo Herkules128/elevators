@@ -73,7 +73,7 @@ minetest.register_craft({
 	output = "elevators:brakerail 12",
 	recipe = {
 	       {'default:steel_ingot', '', 'default:steel_ingot'},
-	       {'', 'default:coal_lump"', ''},
+	       {'', 'default:coal_lump', ''},
 	       {'default:steel_ingot', '', 'default:steel_ingot'}
 	},
 })
