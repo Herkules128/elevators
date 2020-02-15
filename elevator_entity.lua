@@ -90,9 +90,12 @@ function elevator_entity:on_punch(puncher, time_from_last_punch, tool_capabiliti
 
 	-- give the puncher the item
 	local inv = puncher:get_inventory()
-	if not creative.is_enabled_for(puncher:get_player_name()) or not inv:contains_item("main", "carts:cart") then
+
+	if not (creative and creative.is_enabled_for
+				and creative.is_enabled_for(puncher:get_player_name()))
+				or not inv:contains_item("main", "elevators:elevator") then
 		local leftover = inv:add_item("main", "elevators:elevator")
-		-- If no room in inventory add a replacement elevator to the world
+		-- If no room in inventory add a replacement cart to the world
 		if not leftover:is_empty() then
 			minetest.add_item(self.object:get_pos(), leftover)
 		end
@@ -335,7 +338,11 @@ minetest.register_craftitem("elevators:elevator", {
 			return
 		end
 
-		if not creative.is_enabled_for(placer:get_player_name()) then
+		minetest.sound_play({name = "default_place_node_metal", gain = 0.5},
+			{pos = pointed_thing.above}, true)
+
+		if not (creative and creative.is_enabled_for
+				and creative.is_enabled_for(placer:get_player_name())) then
 			itemstack:take_item()
 		end
 		return itemstack
