@@ -18,7 +18,9 @@ local elevator_entity = {
 	ejected_pos = nil,
 	one_tick = 0,
 	remove_elevator = false,
-
+	hud_time = 0,
+	hud_id = nil,
+	hud_player = nil
 
 }
 
@@ -77,32 +79,39 @@ function elevator_entity:on_punch(puncher, time_from_last_punch, tool_capabiliti
 		return
 	end
 
-	-- eject driver
-	if self.driver then
-		self.object:set_acceleration( vector.new(0,0,0) )
-		self.object:set_velocity( vector.new(0,0,0) )
-		local player = minetest.get_player_by_name(self.driver)
-		self.driver = nil
-		manage_attachment(player, nil)
-		self.ejected_player = player
-		self.ejected_pos = eject_to_pos(player)
-	end
+	-- the puncher musst be outside the elevator to remove it
+	if self.driver ~= puncher:get_player_name() and puncher:get_player_control().sneak then
 
-	-- give the puncher the item
-	local inv = puncher:get_inventory()
-
-	if not (creative and creative.is_enabled_for
-				and creative.is_enabled_for(puncher:get_player_name()))
-				or not inv:contains_item("main", "elevators:elevator") then
-		local leftover = inv:add_item("main", "elevators:elevator")
-		-- If no room in inventory add a replacement cart to the world
-		if not leftover:is_empty() then
-			minetest.add_item(self.object:get_pos(), leftover)
+		-- if it is allowed to eject others they will be ejected
+		if eject_by_others then
+			local player = minetest.get_player_by_name(self.driver)
+			self.driver = nil
+			manage_attachment(player, nil)
+			self.ejected_player = player
+			self.ejected_pos = eject_to_pos(player)
 		end
+
+		-- only remove the elevator if it is empty
+		if not self.driver then
+
+			-- give the puncher the item
+			local inv = puncher:get_inventory()
+
+			if not (creative and creative.is_enabled_for
+						and creative.is_enabled_for(puncher:get_player_name()))
+						or not inv:contains_item("main", "elevators:elevator") then
+				local leftover = inv:add_item("main", "elevators:elevator")
+				-- If no room in inventory add a replacement elevator to the world
+				if not leftover:is_empty() then
+					minetest.add_item(self.object:get_pos(), leftover)
+				end
+			end
+
+			-- remove elevator
+			self.remove_elevator = true;
+		end
+
 	end
-
-
-	self.remove_elevator = true;
 
 end
 
@@ -124,9 +133,22 @@ function elevator_entity:on_step(dtime)
 
 		-- change velocity if the seated player jumps or sneaks
 		if minetest.get_player_by_name(self.driver):get_player_control().jump then
-			self.object:set_acceleration(vector.new(0,time_to_accelerate*(top_speed-self.object:get_velocity().y),0))
+			if self.object:get_velocity().y <= top_speed then
+				self.object:set_acceleration(vector.new(0,time_to_accelerate*(top_speed-self.object:get_velocity().y)+1,0))
+			else
+				self.object:set_velocity( vector.new(0,top_speed,0) )
+				self.hud_time = 10
+				self.hud_player = self.driver
+			end
 		elseif minetest.get_player_by_name(self.driver):get_player_control().sneak then
-			self.object:set_acceleration(vector.new(0,time_to_accelerate*(-(top_speed + self.object:get_velocity().y)),0))
+			if self.object:get_velocity().y >= -top_speed then
+				self.object:set_acceleration(vector.new(0,time_to_accelerate*(-(top_speed + self.object:get_velocity().y))-1,0))
+			else
+				self.object:set_velocity( vector.new(0,-top_speed,0) )
+				self.hud_time = 10
+				self.hud_player = self.driver
+			end
+			
 		else
 			self.object:set_acceleration(vector.new(0,0,0))
 		end
@@ -146,17 +168,17 @@ function elevator_entity:on_step(dtime)
 		local next_node = minetest.get_node(next_pos)
 
 		if next_node.name ~= "elevators:rail" and next_node.name ~= "elevators:brakerail" then -- next node is not an elvators:rail and not an elevators:brakerail
-			self.object:set_velocity( { x=0, y=0, z=0} )
-			if down == false then
-				self.object:set_pos( vector.floor(self.object:get_pos()) )
-			else
-				self.object:set_pos( vector.floor(vector.add( self.object:get_pos() , vector.new(0,1,0) ) ) )
+			self.object:set_velocity( vector.new(0,0,0) )
+			if down == false then -- moving upwards
+				self.object:set_pos( vector.new(self.object:get_pos().x, math.floor(self.object:get_pos().y) , self.object:get_pos().z) )
+			else -- moving downwards
+				self.object:set_pos( vector.new(self.object:get_pos().x, math.floor(self.object:get_pos().y+1) , self.object:get_pos().z) )
 			end
 		elseif minetest.get_node(self.object:get_pos()).name == "elevators:brakerail" then -- next node is an elevators:brakerail
 			if self.on_brakerail == false then
 				self.on_brakerail = true
 				self.object:set_velocity( vector.new(0,0,0) )
-				self.object:set_acceleration(vector.new(0,0,0))
+				self.object:set_acceleration( vector.new(0,0,0) )
 			end
 		else
 			self.on_brakerail = false
@@ -187,6 +209,48 @@ function elevator_entity:on_step(dtime)
 
 	end
 
+
+	-- display hud
+	if self.hud_player then
+		if self.hud_player ~= self.driver then
+
+			-- remove hub from the player
+			if minetest.get_player_by_name(self.hud_player) then
+				minetest.get_player_by_name(self.hud_player):hud_remove(self.hud_id)
+			end
+
+			self.hud_player = nil
+			self.hud_time = 0
+			self.hud_id = nil
+			return
+		end
+
+		if self.hud_time ~= 0 then
+
+			if not self.hud_id then -- add hud
+				self.hud_id = minetest.get_player_by_name(self.hud_player):hud_add({
+					 hud_elem_type = "text",
+					 position      = {x = 0.5, y = 0.8},
+					 offset        = {x = 0,   y = 0},
+					 text          = "max speed reached",
+					 alignment     = {x = 0, y = 0},  -- center aligned
+					 scale         = {x = 100, y = 100}, -- covered later
+					 number        = 0xFFFFFF
+				})
+			end
+
+			self.hud_time = self.hud_time - 1
+
+		else
+
+			--remove hud
+			minetest.get_player_by_name(self.hud_player):hud_remove(self.hud_id)
+			self.hud_player = nil
+			self.hud_id = nil
+
+		end
+
+	end
 	
 
 end
@@ -198,20 +262,20 @@ end
 
 function eject_to_side(pos)
 
-	local node_ground_available = minetest.get_node( vector.new(pos.x, pos.y-2, pos.z) ).name == "air"
-	local node_0_available = minetest.get_node( vector.new(pos.x, pos.y-1, pos.z) ).name == "air"
-	local node_1_available = minetest.get_node(pos).name == "air" -- hight of the elevator
-	local node_2_available = minetest.get_node( vector.new(pos.x, pos.y+1, pos.z) ).name == "air"
-	local node_3_available = minetest.get_node( vector.new(pos.x, pos.y+2, pos.z) ).name == "air"
+	local node_0_available = not minetest.registered_nodes[minetest.get_node( vector.new(pos.x, pos.y-2, pos.z) ).name].walkable
+	local node_1_available = not minetest.registered_nodes[minetest.get_node( vector.new(pos.x, pos.y-1, pos.z) ).name].walkable
+	local node_2_available = not minetest.registered_nodes[minetest.get_node( pos ).name].walkable -- hight of the elevator
+	local node_3_available = not minetest.registered_nodes[minetest.get_node( vector.new(pos.x, pos.y+1, pos.z) ).name].walkable
+	local node_4_available = not minetest.registered_nodes[minetest.get_node( vector.new(pos.x, pos.y+2, pos.z) ).name].walkable
 
 	-- check 1x2x1 nodes to be free
-	if not node_ground_available and node_0_available and node_1_available then
+	if not node_0_available and node_1_available and node_2_available then
 		return vector.new(pos.x, pos.y-1, pos.z)
 	end
-	if not node_0_available and node_1_available and node_2_available then
+	if not node_1_available and node_2_available and node_3_available then
 		return pos
 	end
-	if not node_1_available and node_2_available and node_3_available then
+	if not node_2_available and node_3_available and node_4_available then
 		return vector.new(pos.x, pos.y+1, pos.z)
 	end
 

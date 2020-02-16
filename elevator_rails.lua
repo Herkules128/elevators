@@ -4,7 +4,8 @@ minetest.register_node("elevators:rail", {
 	walkable = false,
 	paramtype = "light",
 	sunlight_propagates = true,
-	groups = {cracky=3, oddly_breakable_by_hand=1},
+	groups = {dig_immediate = 2},
+	sounds = default.node_sound_metal_defaults(),
 	drawtype = "nodebox",
     	node_box = {
         	 type = "fixed",
@@ -28,7 +29,8 @@ minetest.register_node("elevators:brakerail", {
 	walkable = false,
 	paramtype = "light",
 	sunlight_propagates = true,
-	groups = {cracky=3, oddly_breakable_by_hand=1},
+	groups = {dig_immediate = 2},
+	sounds = default.node_sound_metal_defaults(),
 	drawtype = "nodebox",
     	node_box = {
         	 type = "fixed",
