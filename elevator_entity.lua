@@ -156,22 +156,27 @@ function elevator_entity:on_step(dtime)
 
 		-- calculate position of the heading node
 		local next_pos = self.object:get_pos()
-		local down = false
+		local going_down = false
+		local going_up = false
 
 		if self.object:get_velocity().y < 0 then
 			next_pos = vector.add( next_pos , vector.new(0,-0.5,0) )
-			down = true
-		else
+			going_down = true
+		elseif self.object:get_velocity().y > 0 then
 			next_pos = vector.add( next_pos , vector.new(0,0.5,0) )
+			going_up = true
+		else
+			-- Not moving. Could be even out of rails if those got destroyed in the meantime
 		end
 
 		local next_node = minetest.get_node(next_pos)
 
-		if next_node.name ~= "elevators:rail" and next_node.name ~= "elevators:brakerail" then -- next node is not an elvators:rail and not an elevators:brakerail
+		if next_node.name ~= "elevators:rail" and next_node.name ~= "elevators:brakerail" then -- next node is not an elevators:rail and not an elevators:brakerail
 			self.object:set_velocity( vector.new(0,0,0) )
-			if down == false then -- moving upwards
+			if going_up == true then -- moving upwards
 				self.object:set_pos( vector.new(self.object:get_pos().x, math.floor(self.object:get_pos().y) , self.object:get_pos().z) )
-			else -- moving downwards
+			end
+			if going_down == true then -- moving downwards
 				self.object:set_pos( vector.new(self.object:get_pos().x, math.ceil(self.object:get_pos().y) , self.object:get_pos().z) )
 			end
 		elseif minetest.get_node(self.object:get_pos()).name == "elevators:brakerail" then -- next node is an elevators:brakerail
