@@ -308,32 +308,28 @@ function eject_to_pos(player)
 
 	if eject_pos ~= nil then
 		return eject_pos
-	else
-			
-		-- all 4 other directions
-		eject_pos = eject_to_side( vector.new(player:get_pos().x, player:get_pos().y, player:get_pos().z+1) )
-		if eject_pos ~= nil then
-			return eject_pos
-		else
-			eject_pos = eject_to_side( vector.new(player:get_pos().x-1, player:get_pos().y, player:get_pos().z) )
-			if eject_pos ~= nil then
-				return eject_pos
-			else
-				eject_pos = eject_to_side( vector.new(player:get_pos().x, player:get_pos().y, player:get_pos().z-1) )
-				if eject_pos ~= nil then
-					return eject_pos
-				else
-					eject_pos = eject_to_side( vector.new(player:get_pos().x+1, player:get_pos().y, player:get_pos().z) )
-					if eject_pos ~= nil then
-						return eject_pos
-					end
-				end
-			end
-		end
+	end
+
+	-- all 4 other directions
+	eject_pos = eject_to_side( vector.new(player:get_pos().x, player:get_pos().y, player:get_pos().z+1) )
+	if eject_pos ~= nil then
+		return eject_pos
+	end
+	eject_pos = eject_to_side( vector.new(player:get_pos().x-1, player:get_pos().y, player:get_pos().z) )
+	if eject_pos ~= nil then
+		return eject_pos
+	end
+	eject_pos = eject_to_side( vector.new(player:get_pos().x, player:get_pos().y, player:get_pos().z-1) )
+	if eject_pos ~= nil then
+		return eject_pos
+	end
+	eject_pos = eject_to_side( vector.new(player:get_pos().x+1, player:get_pos().y, player:get_pos().z) )
+	if eject_pos ~= nil then
+		return eject_pos
 	end
 
 	-- eject above
-	return vector.new(player:get_pos().x, player:get_pos().y+2, player:get_pos().z)																																																																																																																			
+	return vector.new(player:get_pos().x, player:get_pos().y+2, player:get_pos().z)
 
 end	
 
