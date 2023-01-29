@@ -134,7 +134,7 @@ function elevator_entity:on_step(dtime)
 		-- change velocity if the seated player jumps or sneaks
 		if minetest.get_player_by_name(self.driver):get_player_control().jump then
 			if self.object:get_velocity().y <= top_speed then
-				self.object:set_acceleration(vector.new(0,time_to_accelerate*(top_speed-self.object:get_velocity().y)+1,0))
+				self.object:set_acceleration(vector.new(0,time_to_accelerate*(top_speed-self.object:get_velocity().y) + dtime*10,0))
 			else
 				self.object:set_velocity( vector.new(0,top_speed,0) )
 				self.hud_time = 10
@@ -142,7 +142,7 @@ function elevator_entity:on_step(dtime)
 			end
 		elseif minetest.get_player_by_name(self.driver):get_player_control().sneak then
 			if self.object:get_velocity().y >= -top_speed then
-				self.object:set_acceleration(vector.new(0,time_to_accelerate*(-(top_speed + self.object:get_velocity().y))-1,0))
+				self.object:set_acceleration(vector.new(0,time_to_accelerate*(-(top_speed + self.object:get_velocity().y)) - dtime*10,0))
 			else
 				self.object:set_velocity( vector.new(0,-top_speed,0) )
 				self.hud_time = 10
