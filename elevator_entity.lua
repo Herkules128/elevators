@@ -172,7 +172,7 @@ function elevator_entity:on_step(dtime)
 			if down == false then -- moving upwards
 				self.object:set_pos( vector.new(self.object:get_pos().x, math.floor(self.object:get_pos().y) , self.object:get_pos().z) )
 			else -- moving downwards
-				self.object:set_pos( vector.new(self.object:get_pos().x, math.floor(self.object:get_pos().y+1) , self.object:get_pos().z) )
+				self.object:set_pos( vector.new(self.object:get_pos().x, math.ceil(self.object:get_pos().y) , self.object:get_pos().z) )
 			end
 		elseif minetest.get_node(self.object:get_pos()).name == "elevators:brakerail" then -- next node is an elevators:brakerail
 			if self.on_brakerail == false then
