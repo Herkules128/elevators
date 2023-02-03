@@ -134,7 +134,7 @@ function elevator_entity:on_step(dtime)
 		-- change velocity if the seated player jumps or sneaks
 		if minetest.get_player_by_name(self.driver):get_player_control().jump then
 			if self.object:get_velocity().y <= top_speed then
-				self.object:set_acceleration(vector.new(0,time_to_accelerate*(top_speed-self.object:get_velocity().y)+1,0))
+				self.object:set_acceleration(vector.new(0,time_to_accelerate*(top_speed-self.object:get_velocity().y) + dtime*10,0))
 			else
 				self.object:set_velocity( vector.new(0,top_speed,0) )
 				self.hud_time = 10
@@ -142,7 +142,7 @@ function elevator_entity:on_step(dtime)
 			end
 		elseif minetest.get_player_by_name(self.driver):get_player_control().sneak then
 			if self.object:get_velocity().y >= -top_speed then
-				self.object:set_acceleration(vector.new(0,time_to_accelerate*(-(top_speed + self.object:get_velocity().y))-1,0))
+				self.object:set_acceleration(vector.new(0,time_to_accelerate*(-(top_speed + self.object:get_velocity().y)) - dtime*10,0))
 			else
 				self.object:set_velocity( vector.new(0,-top_speed,0) )
 				self.hud_time = 10
@@ -156,23 +156,28 @@ function elevator_entity:on_step(dtime)
 
 		-- calculate position of the heading node
 		local next_pos = self.object:get_pos()
-		local down = false
+		local going_down = false
+		local going_up = false
 
 		if self.object:get_velocity().y < 0 then
 			next_pos = vector.add( next_pos , vector.new(0,-0.5,0) )
-			down = true
-		else
+			going_down = true
+		elseif self.object:get_velocity().y > 0 then
 			next_pos = vector.add( next_pos , vector.new(0,0.5,0) )
+			going_up = true
+		else
+			-- Not moving. Could be even out of rails if those got destroyed in the meantime
 		end
 
 		local next_node = minetest.get_node(next_pos)
 
-		if next_node.name ~= "elevators:rail" and next_node.name ~= "elevators:brakerail" then -- next node is not an elvators:rail and not an elevators:brakerail
+		if next_node.name ~= "elevators:rail" and next_node.name ~= "elevators:brakerail" then -- next node is not an elevators:rail and not an elevators:brakerail
 			self.object:set_velocity( vector.new(0,0,0) )
-			if down == false then -- moving upwards
+			if going_up == true then -- moving upwards
 				self.object:set_pos( vector.new(self.object:get_pos().x, math.floor(self.object:get_pos().y) , self.object:get_pos().z) )
-			else -- moving downwards
-				self.object:set_pos( vector.new(self.object:get_pos().x, math.floor(self.object:get_pos().y+1) , self.object:get_pos().z) )
+			end
+			if going_down == true then -- moving downwards
+				self.object:set_pos( vector.new(self.object:get_pos().x, math.ceil(self.object:get_pos().y) , self.object:get_pos().z) )
 			end
 		elseif minetest.get_node(self.object:get_pos()).name == "elevators:brakerail" then -- next node is an elevators:brakerail
 			if self.on_brakerail == false then
@@ -308,32 +313,28 @@ function eject_to_pos(player)
 
 	if eject_pos ~= nil then
 		return eject_pos
-	else
-			
-		-- all 4 other directions
-		eject_pos = eject_to_side( vector.new(player:get_pos().x, player:get_pos().y, player:get_pos().z+1) )
-		if eject_pos ~= nil then
-			return eject_pos
-		else
-			eject_pos = eject_to_side( vector.new(player:get_pos().x-1, player:get_pos().y, player:get_pos().z) )
-			if eject_pos ~= nil then
-				return eject_pos
-			else
-				eject_pos = eject_to_side( vector.new(player:get_pos().x, player:get_pos().y, player:get_pos().z-1) )
-				if eject_pos ~= nil then
-					return eject_pos
-				else
-					eject_pos = eject_to_side( vector.new(player:get_pos().x+1, player:get_pos().y, player:get_pos().z) )
-					if eject_pos ~= nil then
-						return eject_pos
-					end
-				end
-			end
-		end
+	end
+
+	-- all 4 other directions
+	eject_pos = eject_to_side( vector.new(player:get_pos().x, player:get_pos().y, player:get_pos().z+1) )
+	if eject_pos ~= nil then
+		return eject_pos
+	end
+	eject_pos = eject_to_side( vector.new(player:get_pos().x-1, player:get_pos().y, player:get_pos().z) )
+	if eject_pos ~= nil then
+		return eject_pos
+	end
+	eject_pos = eject_to_side( vector.new(player:get_pos().x, player:get_pos().y, player:get_pos().z-1) )
+	if eject_pos ~= nil then
+		return eject_pos
+	end
+	eject_pos = eject_to_side( vector.new(player:get_pos().x+1, player:get_pos().y, player:get_pos().z) )
+	if eject_pos ~= nil then
+		return eject_pos
 	end
 
 	-- eject above
-	return vector.new(player:get_pos().x, player:get_pos().y+2, player:get_pos().z)																																																																																																																			
+	return vector.new(player:get_pos().x, player:get_pos().y+2, player:get_pos().z)
 
 end	
 
